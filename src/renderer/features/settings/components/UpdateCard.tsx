@@ -1,7 +1,6 @@
 import { AlertCircle, CheckCircle2, Download, Loader2, RefreshCw } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { PRODUCT_NAME } from '@shared/app-identity';
 import { appState } from '@renderer/lib/stores/app-state';
 import { Badge } from '@renderer/lib/ui/badge';
 import { Button } from '@renderer/lib/ui/button';
@@ -104,7 +103,7 @@ export const UpdateCard = observer(function UpdateCard(): React.JSX.Element {
         return (
           <p className="flex items-center gap-1 text-sm text-green-600 dark:text-green-500">
             <CheckCircle2 className="h-3 w-3" />
-            Update ready. Restart {PRODUCT_NAME} to use the new version.
+            Update ready. Restart Koryphaios to use the new version.
           </p>
         );
 
@@ -112,8 +111,8 @@ export const UpdateCard = observer(function UpdateCard(): React.JSX.Element {
         return (
           <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Installing update. {PRODUCT_NAME} will close and restart automatically — this may take a
-            few seconds.
+            Installing update. Koryphaios will close and restart automatically — this may take a few
+            seconds.
           </p>
         );
 

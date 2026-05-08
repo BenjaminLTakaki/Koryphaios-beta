@@ -45,7 +45,7 @@ export function HomeMainPanel() {
               <img
                 key={effectiveTheme}
                 src={effectiveTheme === 'emdark' ? emdashLogoWhite : emdashLogo}
-                alt="Emdash"
+                alt="Koryphaios"
                 className="logo-shimmer-image"
               />
               <span

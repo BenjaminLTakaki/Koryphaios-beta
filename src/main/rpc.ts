@@ -18,6 +18,7 @@ import { projectController } from './core/projects/controller';
 import { ptyController } from './core/pty/controller';
 import { pullRequestController } from './core/pull-requests/controller';
 import { repositoryController } from './core/repository/controller';
+import { routerController } from './core/router/controller';
 import { searchController } from './core/search/controller';
 import { appSettingsController } from './core/settings/controller';
 import { providerSettingsController } from './core/settings/provider-settings-controller';
@@ -61,6 +62,7 @@ export const rpcRouter = createRPCRouter({
   pullRequests: pullRequestController,
   viewState: viewStateController,
   search: searchController,
+  router: routerController,
 });
 
 export type RpcRouter = typeof rpcRouter;

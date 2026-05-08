@@ -50,6 +50,11 @@ const DISPLAY_ENV_VARS = [
   'DBUS_SESSION_BUS_ADDRESS', // Needed by gio open and desktop portals
 ] as const;
 
+const NON_INTERACTIVE_PAGER_ENV = {
+  PAGER: 'cat',
+  GIT_PAGER: 'cat',
+} as const;
+
 function getDisplayEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   for (const key of DISPLAY_ENV_VARS) {
@@ -145,6 +150,11 @@ export function buildTerminalEnv(): Record<string, string> {
   env.TERM = 'xterm-256color';
   env.COLORTERM = 'truecolor';
   env.TERM_PROGRAM = 'emdash';
+  Object.assign(env, NON_INTERACTIVE_PAGER_ENV);
+
+  if (process.platform === 'win32') {
+    Object.assign(env, getWindowsEssentialEnv(getWindowsEnvValue(env, 'PATH') ?? ''));
+  }
 
   // Ensure SHELL reflects the user's configured shell on POSIX. Native Windows
   // shells are selected via ComSpec by the spawn resolver, not SHELL.
@@ -186,6 +196,7 @@ export function buildAgentEnv(options: AgentEnvOptions = {}): Record<string, str
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     TERM_PROGRAM: 'emdash',
+    ...NON_INTERACTIVE_PAGER_ENV,
     HOME: process.env.HOME || os.homedir(),
     USER: process.env.USER || os.userInfo().username,
     PATH: resolvedPath,

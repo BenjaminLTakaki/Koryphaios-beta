@@ -11,6 +11,7 @@ import { HookConfigWriter } from '@main/core/agent-hooks/hook-config';
 import type { ConversationProvider } from '@main/core/conversations/types';
 import type { IExecutionContext } from '@main/core/execution-context/types';
 import { LocalFileSystem } from '@main/core/fs/impl/local-fs';
+import { memoryService } from '@main/core/memory/MemoryService';
 import { spawnLocalPty } from '@main/core/pty/local-pty';
 import type { Pty } from '@main/core/pty/pty';
 import { buildAgentEnv } from '@main/core/pty/pty-env';
@@ -34,6 +35,7 @@ export class LocalConversationProvider implements ConversationProvider {
   private knownSessionIds = new Set<string>();
   private respawnCounts = new Map<string, number>();
   private readonly projectId: string;
+  private readonly projectPath: string;
   private readonly taskPath: string;
   private readonly taskId: string;
   private readonly tmux: boolean;
@@ -45,6 +47,7 @@ export class LocalConversationProvider implements ConversationProvider {
 
   constructor({
     projectId,
+    projectPath,
     taskPath,
     taskId,
     tmux = false,
@@ -53,6 +56,7 @@ export class LocalConversationProvider implements ConversationProvider {
     taskEnvVars = {},
   }: {
     projectId: string;
+    projectPath: string;
     taskPath: string;
     taskId: string;
     tmux?: boolean;
@@ -61,6 +65,7 @@ export class LocalConversationProvider implements ConversationProvider {
     taskEnvVars?: Record<string, string>;
   }) {
     this.projectId = projectId;
+    this.projectPath = projectPath;
     this.taskPath = taskPath;
     this.taskId = taskId;
     this.tmux = tmux;
@@ -92,13 +97,14 @@ export class LocalConversationProvider implements ConversationProvider {
     await this.prepareHookConfig(conversation.providerId);
 
     const providerConfig = await providerOverrideSettings.getItem(conversation.providerId);
+    const effectiveInitialPrompt = this.withSharedMemoryInstruction(initialPrompt);
     const { command, args } = buildAgentCommand({
       providerId: conversation.providerId,
       providerConfig,
       autoApprove: conversation.autoApprove,
       sessionId: conversation.id,
       isResuming,
-      initialPrompt,
+      initialPrompt: effectiveInitialPrompt,
     });
     const providerEnv = resolveProviderEnv(providerConfig);
 
@@ -143,6 +149,10 @@ export class LocalConversationProvider implements ConversationProvider {
     const hookActive = port > 0;
     const provider = getProvider(conversation.providerId);
     const useHooksOnly = hookActive && provider?.supportsHooks;
+    let capturedOutput = '';
+    pty.onData((data) => {
+      capturedOutput = memoryService.appendToCapture(capturedOutput, data);
+    });
 
     if (!useHooksOnly) {
       wireAgentClassifier({
@@ -171,6 +181,15 @@ export class LocalConversationProvider implements ConversationProvider {
         conversationId: conversation.id,
         taskId: conversation.taskId,
         exitCode,
+      });
+      void memoryService.recordAgentOutput({
+        projectPath: this.projectPath,
+        taskId: conversation.taskId,
+        conversationId: conversation.id,
+        providerId: conversation.providerId,
+        output: capturedOutput,
+        exitCode,
+        ctx: this.ctx,
       });
       if (shouldRespawn && !this.tmux) {
         const count = (this.respawnCounts.get(sessionId) ?? 0) + 1;
@@ -229,6 +248,11 @@ export class LocalConversationProvider implements ConversationProvider {
         error: String(error),
       });
     }
+  }
+
+  private withSharedMemoryInstruction(initialPrompt: string | undefined): string {
+    const instruction = memoryService.createContextInstruction(this.projectPath);
+    return initialPrompt?.trim() ? `${instruction}\n\n${initialPrompt.trim()}` : instruction;
   }
 
   async stopSession(conversationId: string): Promise<void> {

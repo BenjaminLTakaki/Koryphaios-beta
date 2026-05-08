@@ -13,7 +13,7 @@ export function Titlebar({ leftSlot, rightSlot }: { leftSlot?: ReactNode; rightS
   return (
     <header
       className={cn(
-        'flex h-10 shrink-0 items-center bg-background-secondary pr-2 border-b border-border [-webkit-app-region:drag] dark:bg-background',
+        'relative flex h-10 shrink-0 items-center bg-background-secondary pr-2 border-b border-border [-webkit-app-region:drag] dark:bg-background',
         !isLeftOpen && 'pl-17'
       )}
     >
@@ -41,6 +41,9 @@ export function Titlebar({ leftSlot, rightSlot }: { leftSlot?: ReactNode; rightS
               </Tooltip>
             )}
             {leftSlot}
+          </div>
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-xs font-medium text-foreground-muted">
+            Koryphaios
           </div>
           <div className="flex items-center justify-end [-webkit-app-region:no-drag]">
             {rightSlot}

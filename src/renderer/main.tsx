@@ -4,6 +4,7 @@ import { ErrorBoundary } from './lib/components/error-boundary';
 import './index.css';
 import 'devicon/devicon.min.css';
 import type { NavigationSnapshot, SidebarSnapshot } from '@shared/view-state';
+import type { BrainstormSnapshot } from '@renderer/features/brainstorm/brainstorm-store';
 import { wireCommitHistoryInvalidation } from '@renderer/lib/commit-history-invalidation';
 import { rpc } from '@renderer/lib/ipc';
 import { wireModelRegistryInvalidation } from '@renderer/lib/monaco/invalidation-bridges';
@@ -27,7 +28,7 @@ async function bootstrap() {
   // Initialize Monaco and load app data in parallel. Awaiting Monaco here
   // guarantees __monaco is set before React renders, so StickyDiffEditor can
   // create editors synchronously on mount without any async coordination.
-  const [, , navResult, sidebarResult] = await Promise.all([
+  const [, , navResult, sidebarResult, brainstormResult] = await Promise.all([
     codeEditorPool.init(0).catch((error: unknown) => {
       log.warn('[monaco-code-pool] init failed:', error);
     }),
@@ -36,6 +37,7 @@ async function bootstrap() {
     }),
     rpc.viewState.get('navigation') as Promise<NavigationSnapshot> | null,
     rpc.viewState.get('sidebar'),
+    rpc.viewState.get('brainstorm'),
     appState.projects.load(),
   ]);
 
@@ -44,6 +46,9 @@ async function bootstrap() {
     appState.sidebar.restoreSnapshot(sidebarResult as Partial<SidebarSnapshot>);
   } else {
     appState.sidebar.expandAllProjects();
+  }
+  if (brainstormResult) {
+    appState.brainstorm.restoreSnapshot(brainstormResult as Partial<BrainstormSnapshot>);
   }
 
   // Avoid double-mount in dev which can duplicate PTY sessions

@@ -11,6 +11,7 @@ type ViewParamsStore = Partial<{ [K in ViewId]: WrapParams<K> }>;
 export const viewEvents: Record<
   ViewId,
   | 'home_viewed'
+  | 'brainstorm_viewed'
   | 'project_viewed'
   | 'task_viewed'
   | 'settings_viewed'
@@ -18,6 +19,7 @@ export const viewEvents: Record<
   | 'mcp_viewed'
 > = {
   home: 'home_viewed',
+  brainstorm: 'brainstorm_viewed',
   project: 'project_viewed',
   task: 'task_viewed',
   settings: 'settings_viewed',

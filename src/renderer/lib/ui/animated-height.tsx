@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@renderer/utils/utils';
 
@@ -16,7 +16,7 @@ export function AnimatedHeight({
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Measure the initial height synchronously before the first paint so
-  // framer-motion starts with an explicit pixel value rather than 'auto'.
+  // Motion starts with an explicit pixel value rather than 'auto'.
   // This prevents the auto→pixel animation that would otherwise run on mount.
   useLayoutEffect(() => {
     const el = contentRef.current;

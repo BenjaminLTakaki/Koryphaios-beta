@@ -34,6 +34,8 @@ describe('pty env Windows shell handling', () => {
 
     expect(env.SHELL).toBeUndefined();
     expect(env.ComSpec).toBe('C:\\Windows\\System32\\cmd.exe');
+    expect(env.PAGER).toBe('cat');
+    expect(env.GIT_PAGER).toBe('cat');
   });
 
   it('does not synthesize /bin/bash when includeShellVar is true on Windows', async () => {
@@ -46,6 +48,8 @@ describe('pty env Windows shell handling', () => {
 
     expect(env.SHELL).toBeUndefined();
     expect(env.ComSpec).toBe('C:\\Windows\\System32\\cmd.exe');
+    expect(env.PAGER).toBe('cat');
+    expect(env.GIT_PAGER).toBe('cat');
   });
 
   it('keeps POSIX shell fallback for non-Windows terminal envs', async () => {

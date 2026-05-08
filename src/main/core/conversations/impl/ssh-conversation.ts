@@ -7,6 +7,7 @@ import { claudeTrustService } from '@main/core/agent-hooks/claude-trust-service'
 import type { ConversationProvider } from '@main/core/conversations/types';
 import type { IExecutionContext } from '@main/core/execution-context/types';
 import { SshFileSystem } from '@main/core/fs/impl/ssh-fs';
+import { memoryService } from '@main/core/memory/MemoryService';
 import type { Pty } from '@main/core/pty/pty';
 import { ptySessionRegistry } from '@main/core/pty/pty-session-registry';
 import { resolveSshCommand } from '@main/core/pty/spawn-utils';
@@ -29,6 +30,7 @@ export class SshConversationProvider implements ConversationProvider {
   private knownSessionIds = new Set<string>();
   private respawnCounts = new Map<string, number>();
   private readonly projectId: string;
+  private readonly projectPath: string;
   private readonly taskPath: string;
   private readonly taskId: string;
   private readonly taskEnvVars: Record<string, string>;
@@ -39,6 +41,7 @@ export class SshConversationProvider implements ConversationProvider {
 
   constructor({
     projectId,
+    projectPath,
     taskPath,
     taskId,
     taskEnvVars = {},
@@ -48,6 +51,7 @@ export class SshConversationProvider implements ConversationProvider {
     proxy,
   }: {
     projectId: string;
+    projectPath: string;
     taskPath: string;
     taskId: string;
     taskEnvVars?: Record<string, string>;
@@ -57,6 +61,7 @@ export class SshConversationProvider implements ConversationProvider {
     proxy: SshClientProxy;
   }) {
     this.projectId = projectId;
+    this.projectPath = projectPath;
     this.taskPath = taskPath;
     this.taskId = taskId;
     this.taskEnvVars = taskEnvVars;
@@ -89,13 +94,14 @@ export class SshConversationProvider implements ConversationProvider {
     });
 
     const providerConfig = await providerOverrideSettings.getItem(conversation.providerId);
+    const effectiveInitialPrompt = this.withSharedMemoryInstruction(initialPrompt);
     const { command, args } = buildAgentCommand({
       providerId: conversation.providerId,
       providerConfig,
       autoApprove: conversation.autoApprove,
       sessionId: conversation.id,
       isResuming,
-      initialPrompt,
+      initialPrompt: effectiveInitialPrompt,
     });
     const providerEnv = resolveProviderEnv(providerConfig);
 
@@ -138,6 +144,10 @@ export class SshConversationProvider implements ConversationProvider {
     }
 
     const pty = result.data;
+    let capturedOutput = '';
+    pty.onData((data) => {
+      capturedOutput = memoryService.appendToCapture(capturedOutput, data);
+    });
 
     // hooks not supported yet, rely on classifier for visual indicator
     wireAgentClassifier({
@@ -165,6 +175,15 @@ export class SshConversationProvider implements ConversationProvider {
         conversationId: conversation.id,
         taskId: conversation.taskId,
         exitCode,
+      });
+      void memoryService.recordAgentOutput({
+        projectPath: this.projectPath,
+        taskId: conversation.taskId,
+        conversationId: conversation.id,
+        providerId: conversation.providerId,
+        output: capturedOutput,
+        exitCode,
+        ctx: this.ctx,
       });
       if (shouldRespawn && !this.tmux) {
         const count = (this.respawnCounts.get(sessionId) ?? 0) + 1;
@@ -218,6 +237,11 @@ export class SshConversationProvider implements ConversationProvider {
     if (this.tmux) {
       await killTmuxSession(this.ctx, makeTmuxSessionName(sessionId));
     }
+  }
+
+  private withSharedMemoryInstruction(initialPrompt: string | undefined): string {
+    const instruction = memoryService.createContextInstruction(this.projectPath);
+    return initialPrompt?.trim() ? `${instruction}\n\n${initialPrompt.trim()}` : instruction;
   }
 
   async destroyAll(): Promise<void> {

@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { AppMenuEvents } from './app/app-menu-events';
 import { WelcomeScreen } from './app/welcome';
 import { Workspace } from './app/workspace';
@@ -22,36 +23,61 @@ export const HAS_SEEN_ONBOARDING = 'emdash:has-seen-onboarding:v1';
 type AppView = 'onboarding' | 'welcome' | 'workspace';
 type OnboardingStep = 'sign-in' | 'import';
 
-function AppContent() {
+function getOnboardingSteps(
+  session: { isSignedIn?: boolean } | undefined,
+  legacyStatus: { hasImportSources?: boolean; portStatus?: unknown } | undefined
+): OnboardingStep[] {
+  const computed: OnboardingStep[] = [];
+  if (!session?.isSignedIn) computed.push('sign-in');
+  const needsImport = legacyStatus?.hasImportSources && !legacyStatus.portStatus;
+  if (needsImport) computed.push('import');
+  return computed;
+}
+
+function AppShell({
+  children,
+  onOpenSettings,
+}: {
+  children: ReactNode;
+  onOpenSettings: () => boolean;
+}) {
+  return (
+    <TooltipProvider delay={300}>
+      <WorkspaceLayoutContextProvider>
+        <TerminalPoolProvider>
+          <GithubContextProvider>
+            <IntegrationsProvider>
+              <WorkspaceViewProvider>
+                <AppMenuEvents onOpenSettings={onOpenSettings} />
+                <RightSidebarProvider>
+                  <ThemeProvider>{children}</ThemeProvider>
+                </RightSidebarProvider>
+              </WorkspaceViewProvider>
+            </IntegrationsProvider>
+          </GithubContextProvider>
+        </TerminalPoolProvider>
+      </WorkspaceLayoutContextProvider>
+    </TooltipProvider>
+  );
+}
+
+function ReadyAppContent({ initialSteps }: { initialSteps: OnboardingStep[] }) {
   const [view, setView] = useState<AppView>(() =>
     localStorage.getItem(HAS_SEEN_ONBOARDING) === 'true' ? 'workspace' : 'onboarding'
   );
 
-  const { data: session, isLoading: sessionLoading } = useAccountSession();
-  const { data: legacyStatus, isLoading: legacyLoading } = useLegacyPortStatus();
-
-  const isLoading = sessionLoading || legacyLoading;
-
   // Computed once when queries first resolve while in onboarding. Never updated
   // after that so query refetches mid-onboarding (e.g. legacyPortStatus after
   // import completes) cannot shrink the step list and unmount active step components.
-  const [frozenSteps, setFrozenSteps] = useState<OnboardingStep[] | null>(null);
-
-  useEffect(() => {
-    if (!isLoading && view === 'onboarding' && frozenSteps === null) {
-      const computed: OnboardingStep[] = [];
-      if (!session?.isSignedIn) computed.push('sign-in');
-      const needsImport = legacyStatus?.hasImportSources && !legacyStatus.portStatus;
-      if (needsImport) computed.push('import');
-      setFrozenSteps(computed); // eslint-disable-line react-hooks/set-state-in-effect
-    }
-  }, [view, isLoading, frozenSteps, session, legacyStatus]);
-
-  const stepsNeeded = frozenSteps ?? [];
+  const [stepsNeeded] = useState<OnboardingStep[]>(() => initialSteps);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem(HAS_SEEN_ONBOARDING, 'true');
     setView('welcome');
+  };
+
+  const handleGetStarted = () => {
+    setView('workspace');
   };
 
   const handleOpenSettingsFromMenu = useCallback(() => {
@@ -61,38 +87,32 @@ function AppContent() {
   }, [view, stepsNeeded.length]);
 
   const renderContent = () => {
-    if (isLoading || (view === 'onboarding' && frozenSteps === null)) {
-      return null;
-    }
     if (view === 'onboarding' && stepsNeeded.length > 0) {
       return <Onboarding steps={stepsNeeded} onComplete={handleOnboardingComplete} />;
     }
     return (
       <>
         <Workspace />
-        {view === 'welcome' && <WelcomeScreen onGetStarted={() => window.location.reload()} />}
+        {view === 'welcome' && <WelcomeScreen onGetStarted={handleGetStarted} />}
       </>
     );
   };
 
-  return (
-    <TooltipProvider delay={300}>
-      <WorkspaceLayoutContextProvider>
-        <TerminalPoolProvider>
-          <GithubContextProvider>
-            <IntegrationsProvider>
-              <WorkspaceViewProvider>
-                <AppMenuEvents onOpenSettings={handleOpenSettingsFromMenu} />
-                <RightSidebarProvider>
-                  <ThemeProvider>{renderContent()}</ThemeProvider>
-                </RightSidebarProvider>
-              </WorkspaceViewProvider>
-            </IntegrationsProvider>
-          </GithubContextProvider>
-        </TerminalPoolProvider>
-      </WorkspaceLayoutContextProvider>
-    </TooltipProvider>
-  );
+  return <AppShell onOpenSettings={handleOpenSettingsFromMenu}>{renderContent()}</AppShell>;
+}
+
+function AppContent() {
+  const { data: session, isLoading: sessionLoading } = useAccountSession();
+  const { data: legacyStatus, isLoading: legacyLoading } = useLegacyPortStatus();
+
+  const isLoading = sessionLoading || legacyLoading;
+  const handleOpenSettingsWhileLoading = useCallback(() => false, []);
+
+  if (isLoading) {
+    return <AppShell onOpenSettings={handleOpenSettingsWhileLoading}>{null}</AppShell>;
+  }
+
+  return <ReadyAppContent initialSteps={getOnboardingSteps(session, legacyStatus)} />;
 }
 
 export function App() {

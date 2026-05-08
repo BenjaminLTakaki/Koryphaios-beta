@@ -40,7 +40,7 @@ export function AccountTab() {
         return;
       }
       toast({
-        title: 'Signed in to Emdash',
+        title: 'Signed in to Koryphaios',
         description: result.user ? `Connected as @${result.user.username}` : 'Signed in',
       });
     } catch (err) {
@@ -69,8 +69,8 @@ export function AccountTab() {
 
   const handleSignOut = () => {
     showConfirmSignOut({
-      title: 'Sign out of Emdash?',
-      description: 'You will need to sign in again to reconnect your Emdash account.',
+      title: 'Sign out of Koryphaios?',
+      description: 'You will need to sign in again to reconnect your Koryphaios account.',
       confirmLabel: 'Sign Out',
       variant: 'default',
       onSuccess: () => void performSignOut(),
@@ -127,7 +127,7 @@ export function AccountTab() {
           <div>
             <p className="text-sm font-medium text-foreground">Session expired</p>
             <p className="text-xs text-muted-foreground">
-              Sign in again to reconnect your Emdash account.
+              Sign in again to reconnect your Koryphaios account.
             </p>
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
@@ -153,9 +153,9 @@ export function AccountTab() {
     <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
       <div className="flex flex-col gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Emdash Account</p>
+          <p className="text-sm font-medium text-foreground">Koryphaios Account</p>
           <p className="text-xs text-muted-foreground">
-            Create an Emdash account to automatically connect GitHub using OAuth2.
+            Create a Koryphaios account to automatically connect GitHub using OAuth2.
           </p>
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}

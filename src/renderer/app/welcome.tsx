@@ -1,4 +1,4 @@
-import { motion, type Variants } from 'framer-motion';
+import { motion, type Variants } from 'motion/react';
 import IconLight from '@/assets/images/emdash/icon-light.png';
 import YTBanner from '@/assets/images/ytbanner.png';
 import { useTheme } from '@renderer/lib/hooks/useTheme';
@@ -61,14 +61,14 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
           className="rounded-md border border-border/40 bg-white p-1.5 shadow-lg shadow-black/5 ring-1 ring-black/5 dark:shadow-white/5 dark:ring-white/10"
           variants={itemVariants}
         >
-          <img src={IconLight} alt="Emdash" className="h-12 w-12 rounded-sm" />
+          <img src={IconLight} alt="Koryphaios" className="h-12 w-12 rounded-sm" />
         </motion.div>
 
         <motion.h1
           className="text-lg font-semibold tracking-tight text-foreground"
           variants={itemVariants}
         >
-          Welcome.
+          Welcome to Koryphaios.
         </motion.h1>
 
         <motion.div

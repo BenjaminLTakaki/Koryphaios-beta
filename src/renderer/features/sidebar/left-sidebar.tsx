@@ -1,4 +1,13 @@
-import { FolderInput, FolderPlus, MessageSquareShare, Plug, Puzzle, Settings } from 'lucide-react';
+import {
+  Code2,
+  FolderInput,
+  FolderPlus,
+  Lightbulb,
+  MessageSquareShare,
+  Plug,
+  Puzzle,
+  Settings,
+} from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import {
@@ -17,6 +26,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
 } from './sidebar-primitives';
@@ -32,6 +42,7 @@ export const LeftSidebar: React.FC = observer(function LeftSidebar() {
   const showAddProjectModal = useShowModal('addProjectModal');
   const showFeedbackModal = useShowModal('feedbackModal');
   const { isDragOver, onDragOver, onDragEnter, onDragLeave, onDrop } = useSidebarDrop();
+  const isCodeView = ['home', 'project', 'task'].includes(currentView);
 
   return (
     <div
@@ -52,6 +63,28 @@ export const LeftSidebar: React.FC = observer(function LeftSidebar() {
       )}
       <SidebarSpace />
       <SidebarContainer className="w-full border-r-0 flex-1 min-h-0">
+        <SidebarHeader className="px-3 pb-2">
+          <SidebarMenu>
+            <SidebarMenuButton
+              isActive={isCodeView}
+              onClick={() => navigate('home')}
+              aria-label="Projects and code"
+              className="w-full justify-start"
+            >
+              <Code2 className="h-5 w-5 sm:h-4 sm:w-4" />
+              Projects/Code
+            </SidebarMenuButton>
+            <SidebarMenuButton
+              isActive={isCurrentView(currentView, 'brainstorm')}
+              onClick={() => navigate('brainstorm')}
+              aria-label="Brainstorm"
+              className="w-full justify-start"
+            >
+              <Lightbulb className="h-5 w-5 sm:h-4 sm:w-4" />
+              Brainstorm
+            </SidebarMenuButton>
+          </SidebarMenu>
+        </SidebarHeader>
         <SidebarContent className="flex flex-col">
           <SidebarPinnedTaskList />
           <SidebarGroup className="mb-0 min-h-0 flex-1 flex flex-col">

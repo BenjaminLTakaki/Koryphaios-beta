@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Pencil, Plus } from 'lucide-react';
 import React from 'react';
 import type { CatalogSkill } from '@shared/skills/types';

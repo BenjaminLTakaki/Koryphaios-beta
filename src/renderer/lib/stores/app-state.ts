@@ -1,3 +1,4 @@
+import { BrainstormStore } from '@renderer/features/brainstorm/brainstorm-store';
 import { ProjectManagerStore } from '@renderer/features/projects/stores/project-manager';
 import { SidebarStore } from '@renderer/features/sidebar/sidebar-store';
 import { DependenciesStore } from './dependencies-store';
@@ -14,9 +15,11 @@ class AppState {
   readonly navigation: NavigationStore;
   readonly dependencies: DependenciesStore;
   readonly sshConnections: SshConnectionStore;
+  readonly brainstorm: BrainstormStore;
 
   constructor() {
     this.snapshots = snapshotRegistry;
+    this.brainstorm = new BrainstormStore();
     this.update = new UpdateStore();
     this.projects = new ProjectManagerStore();
     this.sidebar = new SidebarStore(this.projects);
@@ -27,6 +30,7 @@ class AppState {
     });
     snapshotRegistry.register('navigation', () => this.navigation.snapshot);
     snapshotRegistry.register('sidebar', () => this.sidebar.snapshot);
+    snapshotRegistry.register('brainstorm', () => this.brainstorm.snapshot);
     this.dependencies.start();
     this.sshConnections.start();
   }

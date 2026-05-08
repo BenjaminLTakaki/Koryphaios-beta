@@ -85,7 +85,7 @@ export function SettingsPage({
     },
     account: {
       title: 'Account',
-      description: 'Manage your Emdash account.',
+      description: 'Manage your Koryphaios account.',
       sections: [{ component: <AccountTab /> }],
     },
     'clis-models': {

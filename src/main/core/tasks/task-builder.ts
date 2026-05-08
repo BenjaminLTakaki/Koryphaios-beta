@@ -165,6 +165,7 @@ export async function buildTaskFromWorkspace(
     {
       projectId,
       taskId: task.id,
+      projectPath,
       taskPath: workspace.path,
       tmuxEnabled,
       shellSetup,

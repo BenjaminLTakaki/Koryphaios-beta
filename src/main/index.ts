@@ -26,6 +26,8 @@ import { telemetryService } from './lib/telemetry';
 import { rpcRouter } from './rpc';
 import { resolveUserEnv } from './utils/userEnv';
 
+let isQuitting = false;
+
 if (import.meta.env.DEV) {
   dotenvConfig({ path: '.env.local', override: false });
 }
@@ -135,16 +137,37 @@ void app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (event) => {
+  if (isQuitting) return;
+  isQuitting = true;
   event.preventDefault();
   telemetryService.capture('app_closed');
-  void telemetryService.dispose().finally(() => {
-    agentHookService.dispose();
-    updateService.dispose();
-    prSyncScheduler.dispose();
-    void gitWatcherRegistry.dispose();
-    void projectManager.dispose().catch((e) => {
-      log.error('Failed to shutdown project manager:', e);
-    });
-    app.exit(0);
-  });
+
+  void (async () => {
+    try {
+      const results = await Promise.allSettled([
+        Promise.resolve().then(() => telemetryService.dispose()),
+        Promise.resolve().then(() => agentHookService.dispose()),
+        Promise.resolve().then(() => updateService.dispose()),
+        Promise.resolve().then(() => prSyncScheduler.dispose()),
+        Promise.resolve().then(() => gitWatcherRegistry.dispose()),
+        Promise.resolve().then(() => projectManager.dispose()),
+      ]);
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const serviceNames = [
+            'telemetry service',
+            'agent hook service',
+            'update service',
+            'PR sync scheduler',
+            'git watcher registry',
+            'project manager',
+          ];
+          log.error(`Failed to shutdown ${serviceNames[index]}:`, result.reason);
+        }
+      });
+    } finally {
+      app.exit(0);
+    }
+  })();
 });
