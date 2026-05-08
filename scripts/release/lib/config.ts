@@ -1,4 +1,4 @@
-export {
+import {
   APP_ID,
   APP_NAME_LOWER,
   ARTIFACT_PREFIX,
@@ -6,6 +6,8 @@ export {
   R2_BASE_URL,
   UPDATE_CHANNEL,
 } from '../../../src/shared/app-identity.ts';
+
+export { APP_ID, APP_NAME_LOWER, ARTIFACT_PREFIX, PRODUCT_NAME, R2_BASE_URL, UPDATE_CHANNEL };
 
 export const RELEASE_DIR = 'release';
 export const NATIVE_MODULES = ['better-sqlite3', 'node-pty', '@parcel/watcher'];

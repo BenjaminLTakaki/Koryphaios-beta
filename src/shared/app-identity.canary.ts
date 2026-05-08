@@ -1,4 +1,6 @@
-export { R2_BASE_URL } from './app-identity';
+import { R2_BASE_URL as RELEASES_R2_BASE_URL } from './app-identity';
+
+export const R2_BASE_URL = RELEASES_R2_BASE_URL;
 
 export const APP_ID = 'com.emdash.canary';
 export const PRODUCT_NAME = 'Emdash Canary';

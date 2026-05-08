@@ -1,4 +1,5 @@
 import { makeAutoObservable, toJS } from 'mobx';
+import type { RouterConsultationSource } from '@shared/router';
 
 export type BrainstormMessageRole = 'user' | 'assistant';
 
@@ -7,19 +8,25 @@ export type BrainstormMessage = {
   role: BrainstormMessageRole;
   content: string;
   createdAt: number;
+  source?: RouterConsultationSource;
+  fallbackReason?: string;
 };
 
 export type BrainstormSnapshot = {
   messages: BrainstormMessage[];
-  consultation: string | null;
 };
 
-function createMessage(role: BrainstormMessageRole, content: string): BrainstormMessage {
+function createMessage(
+  role: BrainstormMessageRole,
+  content: string,
+  metadata?: Pick<BrainstormMessage, 'source' | 'fallbackReason'>
+): BrainstormMessage {
   return {
     id: crypto.randomUUID(),
     role,
     content,
     createdAt: Date.now(),
+    ...metadata,
   };
 }
 
@@ -30,7 +37,6 @@ const WELCOME_MESSAGE = createMessage(
 
 export class BrainstormStore {
   messages: BrainstormMessage[] = [WELCOME_MESSAGE];
-  consultation: string | null = null;
   isConsulting = false;
   consultationError: string | null = null;
 
@@ -45,25 +51,14 @@ export class BrainstormStore {
     this.messages.push(createMessage('user', trimmed));
   }
 
-  addAssistantMessage(content: string): void {
-    const trimmed = content.trim();
-    if (!trimmed) return;
-
-    this.messages.push(createMessage('assistant', trimmed));
-    this.consultation = trimmed;
-    this.consultationError = null;
-  }
-
   reset(): void {
     this.messages = [createMessage('assistant', WELCOME_MESSAGE.content)];
-    this.consultation = null;
     this.consultationError = null;
   }
 
   get snapshot(): BrainstormSnapshot {
     return {
       messages: toJS(this.messages),
-      consultation: this.consultation,
     };
   }
 
@@ -71,17 +66,21 @@ export class BrainstormStore {
     if (Array.isArray(snapshot.messages) && snapshot.messages.length > 0) {
       this.messages = snapshot.messages;
     }
-    if (typeof snapshot.consultation === 'string' || snapshot.consultation === null) {
-      this.consultation = snapshot.consultation;
-    }
   }
 
   setConsulting(isConsulting: boolean): void {
     this.isConsulting = isConsulting;
   }
 
-  setConsultation(consultation: string): void {
-    this.addAssistantMessage(consultation);
+  addAssistantResponse(
+    response: string,
+    metadata?: Pick<BrainstormMessage, 'source' | 'fallbackReason'>
+  ): void {
+    const trimmed = response.trim();
+    if (!trimmed) return;
+
+    this.messages.push(createMessage('assistant', trimmed, metadata));
+    this.consultationError = null;
   }
 
   setConsultationError(error: string): void {

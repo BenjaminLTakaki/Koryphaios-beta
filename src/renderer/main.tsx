@@ -2,7 +2,6 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { ErrorBoundary } from './lib/components/error-boundary';
 import './index.css';
-import 'devicon/devicon.min.css';
 import type { NavigationSnapshot, SidebarSnapshot } from '@shared/view-state';
 import type { BrainstormSnapshot } from '@renderer/features/brainstorm/brainstorm-store';
 import { wireCommitHistoryInvalidation } from '@renderer/lib/commit-history-invalidation';

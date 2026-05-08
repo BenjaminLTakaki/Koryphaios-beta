@@ -1,5 +1,6 @@
 import { createRPCController } from '@/shared/ipc/rpc';
-import { appSettingsService, type AppSettings, type AppSettingsKey } from './settings-service';
+import type { AppSettings, AppSettingsKey } from '@shared/app-settings';
+import { appSettingsService } from './settings-service';
 
 export const appSettingsController = createRPCController({
   get: <T extends AppSettingsKey>(key: T): Promise<AppSettings[T]> => appSettingsService.get(key),

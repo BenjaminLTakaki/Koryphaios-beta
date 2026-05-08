@@ -1,4 +1,16 @@
+import { useEffect, useState } from 'react';
 import { File } from 'lucide-react';
+
+let deviconCssPromise: Promise<unknown> | null = null;
+let isDeviconCssLoaded = false;
+
+function loadDeviconCss(): Promise<unknown> {
+  deviconCssPromise ??= import('devicon/devicon.min.css').then((module) => {
+    isDeviconCssLoaded = true;
+    return module;
+  });
+  return deviconCssPromise;
+}
 
 /** Maps a file extension (or full filename for extensionless files) to a devicon class name. */
 const EXTENSION_MAP: Record<string, string> = {
@@ -82,8 +94,20 @@ interface FileIconProps {
 
 export function FileIcon({ filename, className, size = 12 }: FileIconProps) {
   const deviconClass = FILENAME_MAP[filename] ?? EXTENSION_MAP[getExtension(filename)];
+  const [isLoaded, setIsLoaded] = useState(isDeviconCssLoaded);
 
-  if (deviconClass) {
+  useEffect(() => {
+    if (!deviconClass || isLoaded) return;
+    let isMounted = true;
+    void loadDeviconCss().then(() => {
+      if (isMounted) setIsLoaded(true);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [deviconClass, isLoaded]);
+
+  if (deviconClass && isLoaded) {
     return (
       <i className={deviconClass} style={{ fontSize: size, lineHeight: 1 }} aria-hidden="true" />
     );

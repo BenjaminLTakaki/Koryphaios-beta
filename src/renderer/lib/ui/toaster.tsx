@@ -1,1 +1,3 @@
-export { Toaster } from './sonner';
+import { Toaster as SonnerToaster } from './sonner';
+
+export const Toaster = SonnerToaster;

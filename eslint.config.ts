@@ -22,6 +22,14 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportNamedDeclaration[source]',
+          message:
+            'Do not re-export from another module. Import the symbol where it is used instead.',
+        },
+      ],
       'prefer-const': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': [

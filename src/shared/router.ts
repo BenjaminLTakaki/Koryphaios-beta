@@ -1,9 +1,8 @@
-export type PreferredAgent = 'claude' | 'gemini' | 'codex';
+export type RouterConsultationSource = 'gemini' | 'fallback';
 
-export type AgentTask = {
-  id: string;
-  title: string;
-  description: string;
-  preferredAgent: PreferredAgent;
-  dependencies: string[];
+export type RouterConsultation = {
+  markdown: string;
+  source: RouterConsultationSource;
+  model?: string;
+  fallbackReason?: string;
 };

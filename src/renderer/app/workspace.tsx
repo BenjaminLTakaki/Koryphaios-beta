@@ -8,7 +8,7 @@ import {
 } from '@renderer/lib/layout/navigation-provider';
 import { WorkspaceContentLayout, WorkspaceLayout } from '@renderer/lib/layout/workspace-layout';
 import { ModalRenderer } from '@renderer/lib/modal/modal-renderer';
-import { Toaster } from '@renderer/lib/ui/toaster';
+import { Toaster } from '@renderer/lib/ui/sonner';
 
 export function Workspace() {
   useTheme();

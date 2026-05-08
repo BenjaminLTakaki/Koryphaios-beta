@@ -1,17 +1,20 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import type { RouterConsultation } from '@shared/router';
 import { log } from '@main/lib/logger';
+import {
+  GEMINI_PROMPT_FLAG,
+  GEMINI_TIMEOUT_MS,
+  MAX_CLI_BUFFER_BYTES,
+  getConsultationPrompt,
+  getGeminiConsultantModel,
+} from './consultationPrompt';
 
 const execFileAsync = promisify(execFile);
-d
-const GEMINI_TIMEOUT_MS = 120_000;
-const MAX_CLI_BUFFER_BYTES = 1024 * 1024 * 10;
-const GEMINI_CONSULTANT_MODEL = 'gemini-2.5-flash';
-const GEMINI_PROMPT_FLAG = '-p';
 
 export class RouterService {
-  async consultArchitecture(conversation: string): Promise<string> {
+  async consultArchitecture(conversation: string): Promise<RouterConsultation> {
     const normalizedConversation = conversation.trim();
     if (!normalizedConversation) {
       throw new Error('Goal is required to consult on an agent strategy.');
@@ -23,69 +26,25 @@ export class RouterService {
       log.warn('RouterService: Gemini CLI consultation failed, using local fallback', {
         error: String(error),
       });
-      return this.generateFallbackConsultation(normalizedConversation);
+      return this.generateFallbackConsultation(normalizedConversation, getExecErrorMessage(error));
     }
   }
 
   getConsultationPrompt(conversation: string): string {
-    return [
-      'You are the Koryphaios Brainstorm Consultant, an expert AI orchestrator.',
-      'You are NOT the implementation agent for this request.',
-      'Do not run tools, inspect files, edit files, execute commands, or claim that any work has been completed.',
-      'Your job is to talk with the user and help shape the idea before implementation.',
-      '',
-      'Default behavior:',
-      '- Be conversational and concise.',
-      '- Ask 1 to 3 useful clarifying questions when the request is still underspecified.',
-      '- Offer tradeoffs or a lightweight recommendation when helpful.',
-      '- Do NOT immediately produce a full agent plan unless the user clearly asks to plan, says something like "ok plan this", "make the plan", "let\'s plan properly", or asks for copy/paste agent prompts.',
-      '',
-      'When the user explicitly asks for a proper plan:',
-      '- Produce clean Markdown with copy/paste prompts.',
-      '- Recommend only the agents that are actually useful for the task.',
-      '- For easy tasks, it is fine to recommend exactly one agent.',
-      '- Prefer Gemini CLI for simple research, small prototypes, or cheap/fast planning.',
-      '- Prefer Claude Code for complex architecture, tricky multi-file logic, or large refactors.',
-      '- Prefer Codex for focused code edits, debugging, verification, and terminal-first implementation.',
-      '- Never force Claude Code, Gemini CLI, and Codex all into the plan unless each has a clear reason.',
-      '',
-      'If planning, use this shape:',
-      '## Recommended Approach',
-      'Brief summary of the chosen path.',
-      '',
-      '### Step 1: ...',
-      '**Use:** Agent name',
-      '**Why:** Short reason this agent is appropriate.',
-      '**Prompt to copy:**',
-      '```text',
-      'Exact prompt',
-      '```',
-      '',
-      'End with the next manual action for the user.',
-      '',
-      'Conversation so far:',
-      conversation.trim(),
-    ].join('\n');
+    return getConsultationPrompt(conversation);
   }
 
-  private async generateGeminiConsultation(conversation: string): Promise<string> {
+  private async generateGeminiConsultation(conversation: string): Promise<RouterConsultation> {
     const prompt = this.getConsultationPrompt(conversation);
-    const args = [
-      '--skip-trust',
-      '--approval-mode',
-      'plan',
-      '--model',
-      GEMINI_CONSULTANT_MODEL,
-      GEMINI_PROMPT_FLAG,
-      prompt,
-    ];
+    const model = getGeminiConsultantModel();
+    const args = ['--skip-trust', '--model', model, GEMINI_PROMPT_FLAG, prompt];
     const { stdout } = await this.execGeminiCli(args);
 
     const markdown = stripAnsi(stdout).trim();
     if (!markdown) {
       throw new Error('Gemini CLI returned an empty consultation.');
     }
-    return markdown;
+    return { markdown, source: 'gemini', model };
   }
 
   private async execGeminiCli(args: string[]): Promise<{ stdout: string }> {
@@ -113,7 +72,6 @@ export class RouterService {
       timeout: GEMINI_TIMEOUT_MS,
       maxBuffer: MAX_CLI_BUFFER_BYTES,
       windowsHide: true,
-      ...(process.platform === 'win32' ? { windowsVerbatimArguments: true } : {}),
       env: {
         ...process.env,
         CI: 'true',
@@ -124,8 +82,11 @@ export class RouterService {
     };
   }
 
-  private generateFallbackConsultation(conversation: string): string {
-    return [
+  private generateFallbackConsultation(
+    conversation: string,
+    fallbackReason: string
+  ): RouterConsultation {
+    const markdown = [
       'I could not reach Gemini CLI for the live consultant response, but we can still shape this together.',
       '',
       'A few questions before planning:',
@@ -138,6 +99,8 @@ export class RouterService {
       '',
       `> ${conversation.slice(-500)}`,
     ].join('\n');
+
+    return { markdown, source: 'fallback', fallbackReason };
   }
 }
 
@@ -176,18 +139,8 @@ function getGeminiCliAttempts(args: string[]): GeminiCliAttempt[] {
 function createWindowsCmdAttempt(command: string, args: string[]): GeminiCliAttempt {
   return {
     command: process.env.ComSpec || 'cmd.exe',
-    args: ['/d', '/c', buildWindowsCommandLine(command, args)],
+    args: ['/d', '/c', 'call', command, ...args],
   };
-}
-
-function buildWindowsCommandLine(command: string, args: string[]): string {
-  return ['call', quoteWindowsCmdArg(command), ...args.map(quoteWindowsCmdArg)].join(' ');
-}
-
-function quoteWindowsCmdArg(value: string): string {
-  const escaped = value.replace(/\r?\n/g, ' ').replace(/"/g, "'").replace(/%/g, '%%');
-
-  return `"${escaped}"`;
 }
 
 function getGeminiCommand(): string {

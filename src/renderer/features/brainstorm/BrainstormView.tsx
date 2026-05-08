@@ -1,4 +1,4 @@
-import { Bot, Loader2, RotateCcw, Send, User } from 'lucide-react';
+import { AlertTriangle, Bot, Loader2, RotateCcw, Send, User } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { rpc } from '@renderer/lib/ipc';
@@ -27,10 +27,13 @@ export const BrainstormView = observer(function BrainstormView() {
     appState.brainstorm.setConsulting(true);
     try {
       const result = await rpc.router.consultArchitecture({
-        goal: buildConsultationTranscript(appState.brainstorm.messages),
+        conversationTranscript: buildConsultationTranscript(appState.brainstorm.messages),
       });
       if (result.success) {
-        appState.brainstorm.setConsultation(result.data);
+        appState.brainstorm.addAssistantResponse(result.data.markdown, {
+          source: result.data.source,
+          fallbackReason: result.data.fallbackReason,
+        });
       } else {
         appState.brainstorm.setConsultationError(result.error);
       }
@@ -84,11 +87,19 @@ export const BrainstormView = observer(function BrainstormView() {
                 )}
               >
                 {message.role === 'assistant' ? (
-                  <MarkdownRenderer
-                    content={message.content}
-                    variant="compact"
-                    className="max-w-none"
-                  />
+                  <>
+                    {message.source === 'fallback' && (
+                      <div className="mb-2 flex items-center gap-1.5 rounded-md border border-border bg-background-2 px-2 py-1 text-xs text-foreground-muted">
+                        <AlertTriangle className="size-3.5" />
+                        Local fallback. Gemini CLI was unavailable.
+                      </div>
+                    )}
+                    <MarkdownRenderer
+                      content={message.content}
+                      variant="compact"
+                      className="max-w-none"
+                    />
+                  </>
                 ) : (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 )}
@@ -101,7 +112,7 @@ export const BrainstormView = observer(function BrainstormView() {
               <MessageAvatar role="assistant" />
               <article className="flex max-w-[78%] items-center gap-2 rounded-lg border border-border bg-background-1 px-3.5 py-3 text-sm text-foreground-muted shadow-sm">
                 <Loader2 className="size-4 animate-spin" />
-                Consulting Gemini CLI...
+                Consulting assistant...
               </article>
             </div>
           )}
